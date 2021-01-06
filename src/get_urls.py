@@ -122,7 +122,7 @@ myURLS = get_urls(sourceURL, baseURL, urlContains)
 print("length of url set: " + str(len(myURLS)))
 df = url_to_table(myURLS[0])
 i = 1
-for url in myURLS[1:]:
+for url in myURLS[1:5]:
   i = i + 1
   print(str(i))
   df = pd.concat([df, url_to_table(url)])
