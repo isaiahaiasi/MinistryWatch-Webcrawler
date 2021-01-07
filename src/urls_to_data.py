@@ -68,13 +68,23 @@ def get_urls_from_file():
 
   return urls
 
+def generate_excel_from_urls(urls):
+  df = url_to_table(urls[0])
+
+  i = 0
+  for url in urls[1:]:
+    i = i + 1
+    print(str(i))
+    df = pd.concat([df, url_to_table(url)])
+
+  with pd.ExcelWriter("data/test-excel-001.xlsx") as writer: # pylint: disable=abstract-class-instantiated
+    df.to_excel(writer, sheet_name="Sheet1")
+
+
 # Grabs urls from data/urls_data.csv, then passes to
 def main():
   urls = get_urls_from_file()
-
-  for i in range(7):
-    url = urls[i]
-    print(url[0] + " - " + url[1] + " - " + url[2])
+  generate_excel_from_urls(urls)
 
 if __name__ == "__main__":
   main()
