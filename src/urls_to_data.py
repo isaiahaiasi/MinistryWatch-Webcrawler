@@ -1,10 +1,12 @@
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+import csv
 
-
+# Returns: dataframe concatenated from each df returned from url_to_table
 # urls: a list of string[] in the form [url, add'l columns..(eg, name, sector)]
 def urls_to_data(urls):
+
     pass
 
 # url: a string[] in the form [url, add'l columns..(eg, name, sector)]
@@ -56,8 +58,23 @@ def url_to_table(urlData):
 
   return returnDF
 
+def get_urls_from_file():
+  urls = []
+
+  with open("data/urls_data.csv","r") as csvUrls:
+    reader = csv.reader(csvUrls)
+    for row in reader:
+      urls.append([row[0], row[1], row[2]])
+
+  return urls
+
+# Grabs urls from data/urls_data.csv, then passes to
 def main():
-    pass
+  urls = get_urls_from_file()
+
+  for i in range(7):
+    url = urls[i]
+    print(url[0] + " - " + url[1] + " - " + url[2])
 
 if __name__ == "__main__":
-    main()
+  main()

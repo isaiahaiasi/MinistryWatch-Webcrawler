@@ -24,20 +24,15 @@ def get_urls(urlSource, urlBase, urlContains = "", dataColumns = ["name"]):
   for tr in tables[1].findAll("tr"):
     tds = tr.findAll("td")
     url = ["","",""]
-    linkRow = False
 
-    # If there's a link, add it to the urls list
-    for cell in tds:
-      urlTail = get_link(cell, urlContains)
-      if (urlTail != ""):
-        url[0] = urlBase + urlTail
-        linkRow = True
+    urlTail = get_link(tds[0], urlContains)
 
-      # Copy the cells I care about from the tableDF into the df for export
-      if linkRow is True:
-        url[1] = tds[0].text
-        url[2] = tds[1].text
-        urls.append(url)
+    # If there's a link, add it & the tds I care about to the urls list
+    if (urlTail != ""):
+      url[0] = urlBase + urlTail
+      url[1] = tds[0].text
+      url[2] = tds[1].text
+      urls.append(url)
 
   return urls
 
@@ -58,27 +53,23 @@ def get_link(element, urlContains):
 
   return link
 
+def save_urls(urls):
+  f = open("data/urls_data.csv", "w")
+
+  for url in urls:
+    f.write(url[0] + "," + url[1] + "," + url[2] + "\n")
+
+  f.close()
+
 
 def main():
+  # TODO: for real, add these to settings...
   sourceURL = "https://briinstitute.com/mw/compare.php"
   baseURL = "https://briinstitute.com/mw/"
-
-  # Only grab urls with "ein" in the title (desired url format: "ministry.php?ein=########")
   urlContains = "ein"
-  myURLS = get_urls(sourceURL, baseURL, urlContains)
 
-  print("length of url set: " + str(len(myURLS)))
-  df = urls_to_data.url_to_table(myURLS[0])
-  i = 1
-  for url in myURLS[1:5]:
-    i = i + 1
-    print(str(i))
-    df = pd.concat([df, urls_to_data.url_to_table(url)])
-
-  with pd.ExcelWriter("test-excel.xlsx") as writer: # pylint: disable=abstract-class-instantiated
-    df.to_excel(writer, sheet_name="Sheet1")
-
-  print("number of urls: " + str(len(myURLS)))
+  urls = get_urls(sourceURL, baseURL, urlContains)
+  save_urls(urls)
 
 if __name__ == "__main__":
   main()
