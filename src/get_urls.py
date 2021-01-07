@@ -1,6 +1,7 @@
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+import urls_to_data
 
 # TODO: Create main function
 
@@ -15,7 +16,7 @@ def get_urls(urlSource, urlBase, urlContains = "", dataColumns = ["name"]):
   response = requests.get(urlSource)
   soup = BeautifulSoup(response.text, "html.parser")
   tables = soup.find_all("table")
-  
+
   urls = []
   dataColumns = ["url"] + dataColumns
   df = pd.DataFrame(columns=dataColumns)
@@ -37,7 +38,7 @@ def get_urls(urlSource, urlBase, urlContains = "", dataColumns = ["name"]):
         url[1] = tds[0].text
         url[2] = tds[1].text
         urls.append(url)
-  
+
   return urls
 
 def get_link(element, urlContains):
@@ -52,75 +53,32 @@ def get_link(element, urlContains):
   except:
     pass
     # ISSUE
-    # TypeError: 'NoneType' object is not subscriptable 
+    # TypeError: 'NoneType' object is not subscriptable
     # Blame StackOverflow
-  
+
   return link
 
-# url_to_table
-# Returns df of data on a charity
-# Args:
-#   urlData: string array of [url, name, sector]
-def url_to_table(urlData):
-  # TODO: Pull from options file
-  fields = [  
-    "net assets", 
-    "total revenue", 
-    "total contributions", 
-    "total expenses",
-    "fundraising",
-    "program services",
-    "total current assets",
-    "total assets",
-    ]
-  fields = set(fields)
 
-  response = requests.get(urlData[0])
-  soup = BeautifulSoup(response.text, "html.parser")
-  tables = soup.find_all("table")
-  
-  # Don't try to grab data from pages w/o full dataset
-  if len(tables) < 4:
-    return None
+def main():
+  sourceURL = "https://briinstitute.com/mw/compare.php"
+  baseURL = "https://briinstitute.com/mw/"
 
-  htmlDF = pd.read_html(str(tables))[3]
-    
-  returnDF = pd.DataFrame([["Name", "Sector"]], columns=["_Name", "_Sector"])
-  for i in range(2, len(htmlDF.index - 1)):
-    if str(htmlDF.loc[i][0]).lower() not in fields:
-      # print(str(htmlDF.loc[i][0]) + " not a field")
-      continue
-    else:
-      transposedDF = htmlDF.iloc[i].T
-      returnDF = pd.concat([returnDF, transposedDF], ignore_index=True, axis=1)
-    
-  # Make the first row the headers
-  dfHeads = returnDF.iloc[0]
-  returnDF = returnDF[1:]
-  returnDF.columns = dfHeads
+  # Only grab urls with "ein" in the title (desired url format: "ministry.php?ein=########")
+  urlContains = "ein"
+  myURLS = get_urls(sourceURL, baseURL, urlContains)
 
-  # Fill in the name/sector column for every row
-  returnDF.loc[:,"Name"] = urlData[1]
-  returnDF.loc[:,"Sector"] = urlData[2]
+  print("length of url set: " + str(len(myURLS)))
+  df = urls_to_data.url_to_table(myURLS[0])
+  i = 1
+  for url in myURLS[1:5]:
+    i = i + 1
+    print(str(i))
+    df = pd.concat([df, urls_to_data.url_to_table(url)])
 
-  return returnDF
+  with pd.ExcelWriter("test-excel.xlsx") as writer: # pylint: disable=abstract-class-instantiated
+    df.to_excel(writer, sheet_name="Sheet1")
 
-sourceURL = "https://briinstitute.com/mw/compare.php"
-baseURL = "https://briinstitute.com/mw/"
+  print("number of urls: " + str(len(myURLS)))
 
-# Only grab urls with "ein" in the title (desired url format: "ministry.php?ein=########")
-urlContains = "ein"
-myURLS = get_urls(sourceURL, baseURL, urlContains)
-
-print("length of url set: " + str(len(myURLS)))
-df = url_to_table(myURLS[0])
-i = 1
-for url in myURLS[1:5]:
-  i = i + 1
-  print(str(i))
-  df = pd.concat([df, url_to_table(url)])
-
-with pd.ExcelWriter("test-excel.xlsx") as writer: # pylint: disable=abstract-class-instantiated
-  df.to_excel(writer, sheet_name="Sheet1")
-
-print("number of urls: " + str(len(myURLS)))
+if __name__ == "__main__":
+  main()
