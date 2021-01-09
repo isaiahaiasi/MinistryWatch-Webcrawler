@@ -1,4 +1,6 @@
 /.vscode
-/excel_tests
 /.testenv
 /testenv
+/data/*
+!/data/test-excel.xlsx
+/src/__pycache__
