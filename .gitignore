@@ -1,6 +1,4 @@
-/.vscode
-/.testenv
-/testenv
-/data/*
-!/data/test-excel.xlsx
-/src/__pycache__
+.vscode
+venv
+data
+src/__pycache__

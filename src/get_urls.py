@@ -1,7 +1,6 @@
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-import urls_to_data
 
 # TODO: Create main function
 
@@ -21,7 +20,7 @@ def get_urls(urlSource, urlBase, urlContains = "", dataColumns = ["name"]):
   dataColumns = ["url"] + dataColumns
   df = pd.DataFrame(columns=dataColumns)
 
-  for tr in tables[1].findAll("tr"):
+  for tr in tables[0].findAll("tr"):
     tds = tr.findAll("td")
     url = ["","",""]
 
