@@ -1,4 +1,5 @@
 import pandas as pd
+from pandas.core.indexes.base import Index, InvalidIndexError
 import requests
 from bs4 import BeautifulSoup
 import csv
@@ -16,6 +17,21 @@ fields = {
     "total assets",
 }
 
+# different pages have different numbers of tables,
+# and the table I want is a different index for each length
+def get_df_from_list(dfList):
+    tableIndex = 2
+    dflen = len(dfList)
+
+    if (dflen == 2):
+        tableIndex = 1
+    if (dflen > 4):
+        tableIndex = 3
+
+    print("tables count:", len(dfList), "tableIndex:", tableIndex)
+    return dfList[tableIndex]
+
+
 
 # url: a string[] in the form [url, add'l columns..(eg, name, sector)]
 # url_to_table
@@ -31,11 +47,10 @@ def url_to_table(urlData):
 
     htmlDFs = pd.read_html(str(tables))
 
-    if len(htmlDFs) < 3:
-        return None
+    if len(htmlDFs) < 2:
+        raise IndexError("Invalid number of tables (less than 2)")
 
-    # the only table I actually care about
-    htmlDF = htmlDFs[2]
+    htmlDF = get_df_from_list(htmlDFs)
 
     # seriously no idea what this is doing...
     returnDF = pd.DataFrame([["Name", "Sector"]], columns=["_Name", "_Sector"])
@@ -69,16 +84,27 @@ def get_urls_from_file():
 
 
 def generate_excel_from_urls(urls):
-    df = url_to_table(urls[0])
+    df = None
 
-    i = 0
-    for url in urls[1:]:
-        i = i + 1
-        print(str(i))
-        try:
-            df = pd.concat([df, url_to_table(url)])
-        except:
-            print(f"err at {url[1]} - {url[0]}")
+    with open("data/log.csv", "w") as f:
+        logger = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
+        logger.writerow(["url","name","status","error"])
+
+        i = 0
+        for url in urls[1:]:
+            row = [url[0], url[1], 0]
+            i = i + 1
+            print(str(i))
+
+            try:
+                df = pd.concat([df, url_to_table(url)])
+            except (InvalidIndexError, ValueError, IndexError) as err:
+                row[2] = 1
+                row.append(err)
+                print(row)
+
+            logger.writerow(row)
+
     with pd.ExcelWriter("data/test-excel-001.xlsx") as writer:  # pylint: disable=abstract-class-instantiated
         df.to_excel(writer, sheet_name="Sheet1")
 
