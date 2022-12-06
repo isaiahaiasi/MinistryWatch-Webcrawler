@@ -17,30 +17,26 @@ fields = {
     "total assets",
 }
 
+
 # different pages have different numbers of tables,
 # and the table I want is a different index for each length
 def get_df_from_list(dfList):
-    tableIndex = 2
     dflen = len(dfList)
 
-    if (dflen == 2):
+    if dflen == 2:
         tableIndex = 1
-    if (dflen > 4):
+    elif dflen == 3 or dflen == 4:
+        tableIndex = 2
+    elif dflen > 4:
         tableIndex = 3
+    else:
+        raise Exception('Unhandled table count: ', dflen)
 
-    print("tables count:", len(dfList), "tableIndex:", tableIndex)
+    # print("tables count:", len(dfList), "tableIndex:", tableIndex)
     return dfList[tableIndex]
 
 
-
-# url: a string[] in the form [url, add'l columns..(eg, name, sector)]
-# url_to_table
-# Returns df of data on a charity
-# Args:
-#   urlData: string array of [url, name, sector]
-def url_to_table(urlData):
-    [url, name, sector] = urlData
-
+def url_to_table(url, name, sector):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "html.parser")
     tables = soup.find_all("table")
@@ -74,12 +70,9 @@ def url_to_table(urlData):
 
 def get_urls_from_file():
     urls = []
-
     with open("data/urls_data.csv", "r") as csvUrls:
-        reader = csv.reader(csvUrls)
-        for row in reader:
+        for row in csv.reader(csvUrls):
             urls.append([row[0], row[1], row[2]])
-
     return urls
 
 
@@ -88,16 +81,15 @@ def generate_excel_from_urls(urls):
 
     with open("data/log.csv", "w") as f:
         logger = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
-        logger.writerow(["url","name","status","error"])
+        logger.writerow(["url", "name", "status", "error"])
 
-        i = 0
-        for url in urls[1:]:
-            row = [url[0], url[1], 0]
-            i = i + 1
-            print(str(i))
+        for (i, [url, name, sector]) in enumerate(urls[1:]):
+            row = [url, name, 0]
+            print(i)
 
             try:
-                df = pd.concat([df, url_to_table(url)])
+                df = pd.concat(
+                    [df, url_to_table(url, name, sector)], ignore_index=True)
             except (InvalidIndexError, ValueError, IndexError) as err:
                 row[2] = 1
                 row.append(err)

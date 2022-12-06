@@ -3,6 +3,7 @@ import os
 import csv
 from bs4 import BeautifulSoup
 
+
 # get_urls
 # Returns array of string arrays containing: url, name, sector
 # Args:
@@ -10,28 +11,20 @@ from bs4 import BeautifulSoup
 #   UrlBase: the links are partial in this case, so append them to a base url
 #   UrlContains: a way to specify which links I want, to exclude garbage. Default is blank
 #   DataColumns: the name of columns to add to the dataframe (default is "name")
-
-
 def get_urls(urlSource, urlBase, urlContains="", dataColumns=["name"]):
+    dataColumns = ["url"] + dataColumns
     response = requests.get(urlSource)
-    soup = BeautifulSoup(response.text, "html.parser")
-    tables = soup.find_all("table")
+    tables = BeautifulSoup(response.text, "html.parser").find_all("table")
 
     urls = []
-    dataColumns = ["url"] + dataColumns
 
     for tr in tables[0].findAll("tr"):
-        tds = tr.findAll("td")
-        url = ["", "", ""]
+        [name_td, sector_td, *_] = tr.findAll("td")
+        urlTail = get_link(name_td, urlContains)
 
-        urlTail = get_link(tds[0], urlContains)
-
-        # If there's a link, add it & the tds I care about to the urls list
         if (urlTail != ""):
-            url[0] = urlBase + urlTail
-            url[1] = tds[0].text
-            url[2] = tds[1].text
-            urls.append(url)
+            url = urlBase + urlTail
+            urls.append([url, name_td.text, sector_td.text])
 
     return urls
 
