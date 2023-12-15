@@ -53,6 +53,13 @@ def url_to_table(url, name, sector):
     for i in range(2, len(htmlDF.index - 1)):
         if str(htmlDF.loc[i][0]).lower() in fields:
             transposedDF = htmlDF.iloc[i].T
+
+            # "Year" isn't easily labeled, it pulls from a field ALSO labeled "Net Assets"
+            # Having 2 fields causes an error, though, so need to rename it
+            # Pulling it in a smarter way would avoid the need for this
+            if transposedDF[0].lower() == 'net assets':
+                transposedDF[0] += ' ' + str(i)
+
             returnDF = pd.concat([returnDF, transposedDF],
                                  ignore_index=True, axis=1)
 

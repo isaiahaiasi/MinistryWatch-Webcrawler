@@ -2,7 +2,7 @@ import requests
 import os
 import csv
 from bs4 import BeautifulSoup
-
+from datetime import datetime
 
 # get_urls
 # Returns array of string arrays containing: url, name, sector
@@ -22,30 +22,28 @@ def get_urls(urlSource, urlBase, urlContains="", dataColumns=["name"]):
         [name_td, sector_td, *_] = tr.findAll("td")
         urlTail = get_link(name_td, urlContains)
 
-        if (urlTail != ""):
+        if (urlTail):
             url = urlBase + urlTail
             urls.append([url, name_td.text, sector_td.text])
 
     return urls
 
 
-def get_link(element, urlContains):
-    link = ""
-
+def get_link(element, urlContains=""):
+    # if element does not have an <a> tag, return nothing
     try:
         link = element.find('a')['href']
-
-        if urlContains != "" and not (urlContains in link):
-            print("invalid link filtered")
-
-    except:
-        pass
-        # ISSUE
+    except TypeError:
         # TypeError: 'NoneType' object is not subscriptable
-        # Blame StackOverflow
+        print("No <a> tag in element", element)
+        return None
+
+    # if the url does not contain the filter string, return nothing
+    if urlContains != "" and not (urlContains in link):
+        print(f"invalid link filtered: {link}")
+        return None
 
     return link
-
 
 def save_urls(urls):
     # make sure directory exists
@@ -53,8 +51,10 @@ def save_urls(urls):
         os.mkdir("data")
 
     # write urls data to csv
-    with open("data/urls_data.csv", "w") as f:
+    fname = f"data/urls__{datetime.now().strftime('%d-%m-%y_%H:%M:%S')}.csv"
+    with open(fname, "w") as f:
         csvwriter = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
+        csvwriter.writerow(['url', 'name', 'sector'])
         csvwriter.writerows(urls)
 
 
