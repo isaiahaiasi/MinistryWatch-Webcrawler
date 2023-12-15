@@ -3,7 +3,7 @@ from pandas.core.indexes.base import Index, InvalidIndexError
 import requests
 from bs4 import BeautifulSoup
 import csv
-
+from datetime import datetime
 
 # TODO: Pull from options file
 fields = {
@@ -77,13 +77,13 @@ def url_to_table(url, name, sector):
 
 def get_urls_from_file():
     urls = []
-    with open("data/urls_data.csv", "r") as csvUrls:
-        for row in csv.reader(csvUrls):
-            urls.append([row[0], row[1], row[2]])
+    with open("data/urls_test.csv", "r") as csvUrls:
+        for row in csv.DictReader(csvUrls):
+            urls.append([row['url'], row['name'], row['sector']])
     return urls
 
 
-def generate_excel_from_urls(urls):
+def generate_excel_from_urls(urls, format="csv"):
     df = None
 
     with open("data/log.csv", "w") as f:
@@ -104,14 +104,17 @@ def generate_excel_from_urls(urls):
 
             logger.writerow(row)
 
-    with pd.ExcelWriter("data/test-excel-001.xlsx") as writer:  # pylint: disable=abstract-class-instantiated
-        df.to_excel(writer, sheet_name="Sheet1")
+    timestamp = datetime.now().strftime('%d-%m-%y_%H:%M:%S')
+    if format=='xlsx':
+        df.to_excel(f"data/test-excel-{timestamp}.xlsx", sheet_name="Sheet1")
+    else:
+        df.to_csv(f"data/test-csv-{timestamp}.csv")
 
 
 # Grabs urls from data/urls_data.csv, then passes to
 def main():
     urls = get_urls_from_file()
-    generate_excel_from_urls(urls)
+    generate_excel_from_urls(urls, "csv")
 
 
 if __name__ == "__main__":
