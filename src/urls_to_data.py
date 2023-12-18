@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 from datetime import datetime
+from logger import Logger
 
 # TODO: Pull from options file
 fields = {
@@ -55,7 +56,7 @@ def url_to_table(url, name, sector):
             transposedDF = htmlDF.iloc[i].T
 
             # "Year" isn't easily labeled, it pulls from a field ALSO labeled "Net Assets"
-            # Having 2 fields causes an error, though, so need to rename it
+            # Having 2 fields causes an error, though, so need to rename it.
             # Pulling it in a smarter way would avoid the need for this
             if transposedDF[0].lower() == 'net assets':
                 transposedDF[0] += ' ' + str(i)
@@ -86,26 +87,33 @@ def get_urls_from_file():
 def generate_excel_from_urls(urls, format="csv"):
     df = None
 
-    with open("data/log.csv", "w") as f:
-        logger = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
-        logger.writerow(["url", "name", "status", "error"])
+    logger = Logger()
 
-        for (i, [url, name, sector]) in enumerate(urls[1:]):
-            row = [url, name, 0]
-            print(i)
+    for (i, [url, name, sector]) in enumerate(urls[1:]):
+        row = {
+            "url": url,
+            "name": name,
+            "status": 0,
+            "error": None,
+        }
 
-            try:
-                df = pd.concat(
-                    [df, url_to_table(url, name, sector)], ignore_index=True)
-            except (InvalidIndexError, ValueError, IndexError) as err:
-                row[2] = 1
-                row.append(err)
-                print(row)
+        print(i, name)
 
-            logger.writerow(row)
+        try:
+            df = pd.concat(
+                [df, url_to_table(url, name, sector)], ignore_index=True)
+        except (InvalidIndexError, ValueError, IndexError) as err:
+            row["status"] = 1
+            row["error"] = err
+            print(row)
+
+        logger.log(row)
+
+    logger.write(["url", "name", "status", "error"])
 
     timestamp = datetime.now().strftime('%d-%m-%y_%H:%M:%S')
-    if format=='xlsx':
+
+    if format == 'xlsx':
         df.to_excel(f"data/test-excel-{timestamp}.xlsx", sheet_name="Sheet1")
     else:
         df.to_csv(f"data/test-csv-{timestamp}.csv")
