@@ -6,7 +6,12 @@ import csv
 from datetime import datetime
 from logger import Logger
 
-# TODO: Pull from options file
+# TODO: Instead of using this, rewrite to dump everything in a local SQLLite DB.
+# The flow then becomes:
+# - Get urls
+# - Go to each URL, dump data for each year as a row in the table
+# - Use the table data to build the CSV/Excel file
+
 fields = {
     "net assets",
     "total revenue",
@@ -21,36 +26,33 @@ fields = {
 
 # different pages have different numbers of tables,
 # and the table I want is a different index for each length
-def get_df_from_list(dfList):
-    dflen = len(dfList)
-
-    if dflen == 2:
+def get_table_index(tableCount: int):
+    if tableCount == 2:
         tableIndex = 1
-    elif dflen == 3 or dflen == 4:
+    elif tableCount == 3 or tableCount == 4:
         tableIndex = 2
-    elif dflen > 4:
+    elif tableCount > 4:
         tableIndex = 3
     else:
-        raise Exception('Unhandled table count: ', dflen)
+        raise IndexError('Unhandled table count: ', tableCount)
 
-    # print("tables count:", len(dfList), "tableIndex:", tableIndex)
-    return dfList[tableIndex]
+    return tableIndex
 
 
+# TODO: Replace with "update_charity({url, name})"
+# TODO: I want to get rid of all this pandas DF shit!
 def url_to_table(url, name, sector):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "html.parser")
     tables = soup.find_all("table")
 
-    htmlDFs = pd.read_html(str(tables))
+    tableIndex = get_table_index(len(tables))
 
-    if len(htmlDFs) < 2:
-        raise IndexError("Invalid number of tables (less than 2)")
-
-    htmlDF = get_df_from_list(htmlDFs)
+    htmlDF = pd.read_html(str(tables[tableIndex]))[0]
 
     # seriously no idea what this is doing...
     returnDF = pd.DataFrame([["Name", "Sector"]], columns=["_Name", "_Sector"])
+
     for i in range(2, len(htmlDF.index - 1)):
         if str(htmlDF.loc[i][0]).lower() in fields:
             transposedDF = htmlDF.iloc[i].T
@@ -100,6 +102,7 @@ def generate_excel_from_urls(urls, format="csv"):
         print(i, name)
 
         try:
+            # TODO: Eliminate this nightmare
             df = pd.concat(
                 [df, url_to_table(url, name, sector)], ignore_index=True)
         except (InvalidIndexError, ValueError, IndexError) as err:
