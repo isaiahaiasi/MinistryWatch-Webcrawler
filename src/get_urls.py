@@ -24,7 +24,13 @@ def get_urls(urlSource, urlBase, urlContains="", dataColumns=["name"]):
 
         if (urlTail):
             url = urlBase + urlTail
-            urls.append([url, name_td.text, sector_td.text])
+            ein = urlTail.split("ein=")[1]
+            urls.append({
+                'ein': ein,
+                'name': name_td.text,
+                'sector': sector_td.text,
+                'url': url,
+            })
 
     return urls
 
@@ -51,10 +57,14 @@ def save_urls(urls):
         os.mkdir("data")
 
     # write urls data to csv
-    fname = f"data/urls__{datetime.now().strftime('%d-%m-%y_%H:%M:%S')}.csv"
-    with open(fname, "w") as f:
-        csvwriter = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
-        csvwriter.writerow(['url', 'name', 'sector'])
+    fname = f"urls__{datetime.now().strftime('%d-%m-%y_%H-%M-%S')}.csv"
+    with open(os.path.join("data", fname), "w") as f:
+        csvwriter = csv.DictWriter(
+            f,
+            fieldnames=['ein', 'name', 'sector', 'url'],
+            quoting=csv.QUOTE_MINIMAL,
+        )
+        csvwriter.writeheader()
         csvwriter.writerows(urls)
 
 
