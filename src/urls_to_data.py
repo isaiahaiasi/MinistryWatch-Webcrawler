@@ -1,16 +1,42 @@
-import pandas as pd
-from pandas.core.indexes.base import Index, InvalidIndexError
 import requests
 from bs4 import BeautifulSoup
 import csv
-from datetime import datetime
-from logger import Logger
 
 # TODO: Instead of using this, rewrite to dump everything in a local SQLLite DB.
 # The flow then becomes:
 # - Get urls
 # - Go to each URL, dump data for each year as a row in the table
 # - Use the table data to build the CSV/Excel file
+
+'''
+CHARITY INFO:
+table:
+    Name (PK)
+    Sector
+    FiscalYearEnd
+
+- Get name from text
+- Get sector from text
+- Get Fiscal Year End from text
+
+
+FINANCIALS
+table:
+    CharityID
+    Year
+    (every financials row...)
+    PRIMARY KEY (CharityID, Year)
+- Add 
+
+COMPENSATION:
+table:
+    CharityID
+    Name
+    Title
+    Compensation
+    "As of" Date
+- Get compensation "as of" date from text
+'''
 
 fields = {
     "net assets",
@@ -23,109 +49,79 @@ fields = {
     "total assets",
 }
 
+class MinistryCrawler:
+    def __init__(self):
+        self.charities = []
+        self.finances = []
+        self.compensations = []
 
-# different pages have different numbers of tables,
-# and the table I want is a different index for each length
-def get_table_index(tableCount: int):
-    if tableCount == 2:
-        tableIndex = 1
-    elif tableCount == 3 or tableCount == 4:
-        tableIndex = 2
-    elif tableCount > 4:
-        tableIndex = 3
-    else:
-        raise IndexError('Unhandled table count: ', tableCount)
+    def get_compensation_data(self, charity, soup_page):
+        comp_table = (soup_page
+                      .find('h2', string="Compensation")
+                      .find_next('table')
+        )
 
-    return tableIndex
+        if not comp_table:
+            return -1
 
+        comp_date = (soup_page.find(string=lambda t: "Compensation data as of" in t)
+                    .split(':')[1]
+                    .strip()
+        )
 
-# TODO: Replace with "update_charity({url, name})"
-# TODO: I want to get rid of all this pandas DF shit!
-def url_to_table(url, name, sector):
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, "html.parser")
-    tables = soup.find_all("table")
+        rows = comp_table.find_all("tr")[1:]
 
-    tableIndex = get_table_index(len(tables))
+        for row in rows:
+            name, title, compensation = [td.text for td in row.find_all("td")]
+            self.compensations.append({
+                'ein': charity['ein'],
+                'date': comp_date,
+                'name': name,
+                'title': title,
+                'compensation': compensation,
+            })
+        
+        return len(rows)
 
-    htmlDF = pd.read_html(str(tables[tableIndex]))[0]
+    def get_financial_data(self):
+        # TODO
+        pass
 
-    # seriously no idea what this is doing...
-    returnDF = pd.DataFrame([["Name", "Sector"]], columns=["_Name", "_Sector"])
+    def get_charity_data(self):
+        for charity in self.charities:
+            res = requests.get(charity['url'])
+            soup = BeautifulSoup(res.text, "html.parser")
 
-    for i in range(2, len(htmlDF.index - 1)):
-        if str(htmlDF.loc[i][0]).lower() in fields:
-            transposedDF = htmlDF.iloc[i].T
+            charity['fye'] = (soup.find(string=lambda t: "Fiscal year end:" in t)
+                    .split(':')[1]
+                    .strip()
+            )
 
-            # "Year" isn't easily labeled, it pulls from a field ALSO labeled "Net Assets"
-            # Having 2 fields causes an error, though, so need to rename it.
-            # Pulling it in a smarter way would avoid the need for this
-            if transposedDF[0].lower() == 'net assets':
-                transposedDF[0] += ' ' + str(i)
+            # Don't really need to re-run
+            self.get_compensation_data(charity, soup)
 
-            returnDF = pd.concat([returnDF, transposedDF],
-                                 ignore_index=True, axis=1)
+            self.get_financial_data()
 
-    # Make the first row the headers
-    dfHeads = returnDF.iloc[0]
-    returnDF = returnDF[1:]
-    returnDF.columns = dfHeads
+    def load_charities_from_file(self, filepath):
+        with open(filepath, "r") as csv_urls:
+            for charity in csv.DictReader(csv_urls):
+                self.charities.append(charity)
+    
+    def write_charity_data_to_file(self):
+        with open("data/compensation.csv", "w") as comp_fp:
+            writer = csv.DictWriter(
+                comp_fp,
+                fieldnames=["ein", "date", "name", "title", "compensation"],
+            )
+            writer.writeheader()
+            writer.writerows(self.compensations)
 
-    # Fill in the name/sector column for every row
-    returnDF.loc[:, "Name"] = name
-    returnDF.loc[:, "Sector"] = sector
-
-    return returnDF
-
-
-def get_urls_from_file():
-    urls = []
-    with open("data/urls_test.csv", "r") as csvUrls:
-        for row in csv.DictReader(csvUrls):
-            urls.append([row['url'], row['name'], row['sector']])
-    return urls
-
-
-def generate_excel_from_urls(urls, format="csv"):
-    df = None
-
-    logger = Logger()
-
-    for (i, [url, name, sector]) in enumerate(urls[1:]):
-        row = {
-            "url": url,
-            "name": name,
-            "status": 0,
-            "error": None,
-        }
-
-        print(i, name)
-
-        try:
-            # TODO: Eliminate this nightmare
-            df = pd.concat(
-                [df, url_to_table(url, name, sector)], ignore_index=True)
-        except (InvalidIndexError, ValueError, IndexError) as err:
-            row["status"] = 1
-            row["error"] = err
-            print(row)
-
-        logger.log(row)
-
-    logger.write(["url", "name", "status", "error"])
-
-    timestamp = datetime.now().strftime('%d-%m-%y_%H:%M:%S')
-
-    if format == 'xlsx':
-        df.to_excel(f"data/test-excel-{timestamp}.xlsx", sheet_name="Sheet1")
-    else:
-        df.to_csv(f"data/test-csv-{timestamp}.csv")
-
-
-# Grabs urls from data/urls_data.csv, then passes to
 def main():
-    urls = get_urls_from_file()
-    generate_excel_from_urls(urls, "csv")
+    crawler = MinistryCrawler()
+    crawler.load_charities_from_file("data/test_urls.csv")
+
+    crawler.get_charity_data()
+    crawler.write_charity_data_to_file()
 
 
 if __name__ == "__main__":
