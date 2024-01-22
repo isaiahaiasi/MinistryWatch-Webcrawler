@@ -4,6 +4,8 @@ import csv
 from bs4 import BeautifulSoup
 from datetime import datetime
 
+# NOTE: If "ein" param was always the EIN, we could pull that here as well...
+# ... But it's not! There are about a dozen where the "ein" doesn't match.
 # get_urls
 # Returns array of string arrays containing: url, name, sector
 # Args:
@@ -24,9 +26,7 @@ def get_urls(urlSource, urlBase, urlContains="", dataColumns=["name"]):
 
         if (urlTail):
             url = urlBase + urlTail
-            ein = urlTail.split("ein=")[1]
             urls.append({
-                'ein': ein,
                 'name': name_td.text,
                 'sector': sector_td.text,
                 'url': url,
@@ -61,7 +61,7 @@ def save_urls(urls):
     with open(os.path.join("data", fname), "w") as f:
         csvwriter = csv.DictWriter(
             f,
-            fieldnames=['ein', 'name', 'sector', 'url'],
+            fieldnames=['name', 'sector', 'url'],
             quoting=csv.QUOTE_MINIMAL,
         )
         csvwriter.writeheader()
