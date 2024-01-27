@@ -55,6 +55,7 @@ class MinistryCrawler:
         self.financials = []
         self.compensations = []
 
+    # TODO: Prevent duplicates (same EIN, name, AND date)
     def get_compensation_data(self, charity, soup_page):
         comp_table = (soup_page
                       .find('h2', string="Compensation")
