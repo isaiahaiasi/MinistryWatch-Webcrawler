@@ -40,8 +40,19 @@ CREATE TABLE public.financials
 	other_changes_in_net_assets money,
 	total_change_in_net_assets money,
 
+
 	-- Generated columns
-	-- Not sure best way to handle DIV-0 err...
+	/*
+	Not sure best way to handle DIV-0 err...
+	Constraint: non-zero columns:
+	- net_assets
+	- total_assets
+	- total_contributions
+	- total_current_assets
+	- total_current_liabilities
+	- total_expenses
+	- total_revenue
+	*/
 	gen_admin_expenses 					money GENERATED ALWAYS AS (total_expenses - program_services - fundraising) STORED,
 	fundraising_cost_ratio 			numeric GENERATED ALWAYS AS (fundraising				/NULLIF(total_revenue, '$0.00'::money)) STORED,
 	contribution_reliance_ratio numeric GENERATED ALWAYS AS (total_contributions/NULLIF(total_revenue, '$0.00'::money)) STORED,
@@ -59,6 +70,10 @@ CREATE TABLE public.financials
 	other_revenue_reliance 			numeric GENERATED ALWAYS AS ((total_revenue-total_contributions)/NULLIF(total_current_assets, '$0.00'::money)) STORED,
 	total_asset_turnover 				numeric GENERATED ALWAYS AS (total_expenses			/NULLIF(total_assets, '$0.00'::money)) STORED,
 	reserve_accumulation_rate 	numeric GENERATED ALWAYS AS ((total_revenue-total_expenses)			/NULLIF(net_assets, '$0.00'::money)) STORED,
+	-- Liquidity/Solvency Ratios
+	current_liquidity_ratio numeric GENERATED ALWAYS AS (total_current_assets /NULLIF(total_current_liabilities, '$0.00'::money)) STORED,
+	liquid_reserve_level numeric GENERATED ALWAYS AS ((total_current_assets - total_current_liabilities)/NULLIF(total_expenses/12, '$0.00'::money)) STORED
+	current_liabilities_ratio numeric GENERATED ALWAYS AS (total_current_liabilities /NULLIF(total_current_assets, '$0.00'::money)) STORED,
 	liabilities_ratio 					numeric GENERATED ALWAYS AS ((total_assets-net_assets)					/NULLIF(total_assets, '$0.00'::money)) STORED,
 	reserve_coverage_ratio 			numeric GENERATED ALWAYS AS (net_assets					/NULLIF(total_expenses, '$0.00'::money)) STORED,
 
@@ -66,8 +81,6 @@ CREATE TABLE public.financials
 	-- primary_revenue_growth_cn
 	-- primary_expense_growth_cn
 	-- age_of_assets
-	-- current_ratio
-	-- liquid_reserve_level
 	-- working_capital_ratio_cn
 
 	PRIMARY KEY(ein, tax_year)
