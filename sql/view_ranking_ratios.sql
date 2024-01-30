@@ -1,5 +1,5 @@
 -- GENERAL FA/RA/AU ratios
-CREATE MATERIALIZED VIEW public.ranking_ratios
+CREATE VIEW public.ranking_ratios
 AS
 SELECT
 	gen.ein,

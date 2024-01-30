@@ -166,4 +166,4 @@ LEFT JOIN financials
 	ON max_compensations.ein = financials.ein
 WHERE total_revenue >= '$100,000,000'
 GROUP BY max_compensations.sector
-ORDER BY sector, mean
+ORDER BY sector, mean;

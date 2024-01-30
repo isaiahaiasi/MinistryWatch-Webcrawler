@@ -1,19 +1,18 @@
-CREATE MATERIALIZED VIEW public.medians
+CREATE VIEW public.medians
 AS
 /*
-medians materialized view
 rows: sectors + general + total
 */
 SELECT
-	fin.sector,
+	pretty_financials.sector,
 	PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY fundraising_cost_ratio) fundraising_cost_ratio,
 	PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY contribution_reliance_ratio) contribution_reliance_ratio,
 	PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY spending_ratio) spending_ratio,
 	PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY program_output_ratio) program_output_ratio,
 	PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY degree_of_lt_investment) degree_of_lt_investment,
 	PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY cur_asset_turnover) cur_asset_turnover
-FROM pretty_financials fin
-GROUP BY fin.sector
+FROM pretty_financials
+GROUP BY pretty_financials.sector
 UNION
 SELECT
 	'General',
@@ -23,8 +22,8 @@ SELECT
 	PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY program_output_ratio) program_output_ratio,
 	PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY degree_of_lt_investment) degree_of_lt_investment,
 	PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY cur_asset_turnover) cur_asset_turnover
-FROM pretty_financials fin
-LEFT JOIN sector_flags ON fin.sector = sector_flags.sector
+FROM pretty_financials
+LEFT JOIN sector_flags ON pretty_financials.sector = sector_flags.sector
 WHERE sector_flags.general = TRUE
 UNION
 SELECT
@@ -35,6 +34,4 @@ SELECT
 	PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY program_output_ratio) program_output_ratio,
 	PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY degree_of_lt_investment) degree_of_lt_investment,
 	PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY cur_asset_turnover) cur_asset_turnover
-FROM pretty_financials fin
-
-WITH DATA;
+FROM pretty_financials;

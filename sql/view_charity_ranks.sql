@@ -1,4 +1,4 @@
-CREATE MATERIALIZED VIEW public.charity_ranks
+CREATE VIEW public.charity_ranks
 AS
 SELECT
 	rr.*,
@@ -29,6 +29,4 @@ FROM (
 		) AS sec_asset_utilization_rank
 	FROM ranking_ratios r
 	LEFT JOIN charities ON r.ein = charities.ein
-) AS rr
-
-WITH DATA;
+) AS rr;
