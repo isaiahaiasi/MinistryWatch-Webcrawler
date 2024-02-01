@@ -3,3 +3,4 @@ venv
 data
 src/__pycache__
 _postgresql_volume
+.DS_Store
