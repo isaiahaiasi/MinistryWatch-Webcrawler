@@ -40,7 +40,6 @@ SELECT charities.charity_name,
 	surplus_deficit,
 	other_changes_in_net_assets,
 	total_change_in_net_assets,
-	gen_admin_expenses,
 	fundraising_cost_ratio,
 	contribution_reliance_ratio,
 	spending_ratio,
@@ -57,12 +56,16 @@ SELECT charities.charity_name,
 	other_revenue_reliance,
 	total_asset_turnover,
 	reserve_accumulation_rate,
+	current_liquidity_ratio,
+	liquid_reserve_level,
+	current_liabilities_ratio,
 	liabilities_ratio,
 	reserve_coverage_ratio
+
 FROM financials
-LEFT JOIN charities ON charities.ein = financials.ein
+LEFT JOIN charities USING (ein)
 WHERE financials.tax_year > 2015
 	AND total_current_assets <> 0::money
 	AND total_assets <> 0::money
-	AND gen_admin_expenses <> 0::money
+	AND management_and_general <> 0::money
 ORDER BY charity_name, tax_year DESC;
