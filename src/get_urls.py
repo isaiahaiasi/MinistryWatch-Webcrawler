@@ -13,6 +13,8 @@ from datetime import datetime
 #   UrlBase: the links are partial in this case, so append them to a base url
 #   UrlContains: a way to specify which links I want, to exclude garbage. Default is blank
 #   DataColumns: the name of columns to add to the dataframe (default is "name")
+
+
 def get_urls(urlSource, urlBase, urlContains="", dataColumns=["name"]):
     dataColumns = ["url"] + dataColumns
     response = requests.get(urlSource)
@@ -51,6 +53,7 @@ def get_link(element, urlContains=""):
 
     return link
 
+
 def save_urls(urls):
     # make sure directory exists
     if not os.path.exists("data"):
@@ -69,9 +72,8 @@ def save_urls(urls):
 
 
 def main():
-    # TODO: for real, add these to settings...
-    sourceURL = "https://briinstitute.com/mw/compare.php"
-    baseURL = "https://briinstitute.com/mw/"
+    sourceURL = "https://db.ministrywatch.com/compare.php"
+    baseURL = "https://db.ministrywatch.com/"
     urlContains = "ein"
 
     urls = get_urls(sourceURL, baseURL, urlContains)

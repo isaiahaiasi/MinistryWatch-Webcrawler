@@ -49,6 +49,7 @@ fields = {
     "total assets",
 }
 
+
 class MinistryCrawler:
     def __init__(self):
         self.charities = []
@@ -60,15 +61,15 @@ class MinistryCrawler:
         comp_table = (soup_page
                       .find('h2', string="Compensation")
                       .find_next('table')
-        )
+                      )
 
         if not comp_table:
             return -1
 
         comp_date = (soup_page.find(string=lambda t: "Compensation data as of" in t)
-                    .split(':')[1]
-                    .strip()
-        )
+                     .split(':')[1]
+                     .strip()
+                     )
 
         rows = comp_table.find_all("tr")[1:]
 
@@ -81,7 +82,7 @@ class MinistryCrawler:
                 'title': title,
                 'compensation': compensation,
             })
-        
+
         return len(rows)
 
     def get_financial_data(self, charity, soup):
@@ -92,14 +93,14 @@ class MinistryCrawler:
             return -1
 
         financials = []
-        
+
         rows = table.find_all("tr")
 
         # get years & initialize rows
         for year in [td.text for td in rows[2].find_all("td")][1:]:
             financials.append({
                 'ein': charity['ein'],
-                'name': charity['name'], # TODO: Remove
+                'name': charity['name'],  # TODO: Remove
                 'year': year,
             })
 
@@ -114,7 +115,7 @@ class MinistryCrawler:
             line_name = tds[0]
             for i in range(1, len(tds)):
                 financials[i-1][line_name] = tds[i]
-        
+
         self.financials.extend(financials)
 
     def get_charity_data(self):
@@ -123,15 +124,15 @@ class MinistryCrawler:
             soup = BeautifulSoup(res.text, "html.parser")
 
             charity['fye'] = (soup.find(string=lambda t: "Fiscal year end:" in t)
-                    .split(':')[1]
-                    .strip()
-            )
+                              .split(':')[1]
+                              .strip()
+                              )
 
             # url would be easier, but it isn't always the actual EIN
             charity['ein'] = (soup.find(string=lambda t: "EIN:" in t)
-                    .split(':')[1]
-                    .strip()
-            )
+                              .split(':')[1]
+                              .strip()
+                              )
 
             self.get_compensation_data(charity, soup)
 
@@ -141,7 +142,7 @@ class MinistryCrawler:
         with open(filepath, "r") as csv_urls:
             for charity in csv.DictReader(csv_urls):
                 self.charities.append(charity)
-    
+
     def write_charity_data_to_files(self):
         with open("data/compensation.csv", "w", newline='') as comp_fp:
             writer = csv.DictWriter(
@@ -150,7 +151,7 @@ class MinistryCrawler:
             )
             writer.writeheader()
             writer.writerows(self.compensations)
-        
+
         with open("data/charities.csv", "w", newline='') as charity_fp:
             writer = csv.DictWriter(
                 charity_fp,
@@ -158,7 +159,7 @@ class MinistryCrawler:
             )
             writer.writeheader()
             writer.writerows(self.charities)
-        
+
         with open("data/financials.csv", "w", newline='') as fin_fp:
             writer = csv.DictWriter(
                 fin_fp,
@@ -167,9 +168,10 @@ class MinistryCrawler:
             writer.writeheader()
             writer.writerows(self.financials)
 
+
 def main():
     crawler = MinistryCrawler()
-    crawler.load_charities_from_file("data/urls__21-01-24_16-29-39.csv")
+    crawler.load_charities_from_file("data/urls_data.csv")
 
     crawler.get_charity_data()
     crawler.write_charity_data_to_files()
